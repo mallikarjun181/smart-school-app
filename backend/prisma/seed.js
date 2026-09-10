@@ -1,0 +1,30 @@
+
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+const prisma=new PrismaClient();
+const school=await prisma.school.upsert({where:{id:'default-school'},update:{name:'Smart School',slug:'smart-school'},create:{id:'default-school',name:'Smart School',slug:'smart-school'}});
+const hash=await bcrypt.hash('Smart@123',12);
+async function user(data){return prisma.user.upsert({where:{email:data.email},update:{name:data.name,mobile:data.mobile,role:data.role,status:'ACTIVE',passwordHash:hash,mustChangePassword:true},create:{...data,status:'ACTIVE',passwordHash:hash,mustChangePassword:true}})}
+const owner=await user({name:'App Owner',email:'owner@smartschool.local',mobile:'9000000001',role:'OWNER'});
+const admin=await user({name:'School Admin',email:'admin@smartschool.local',mobile:'9000000002',role:'SCHOOL_ADMIN'});
+const ctUser=await user({name:'Mr. Ravi Kumar',email:'ravi@smartschool.local',mobile:'9000000003',role:'CLASS_TEACHER'});
+const stUser=await user({name:'Mrs. Anitha',email:'anitha@smartschool.local',mobile:'9000000004',role:'SUBJECT_TEACHER'});
+const parentUser=await user({name:'Parent Aarav',email:'parent@smartschool.local',mobile:'9000000005',role:'PARENT'});
+const math=await prisma.subject.upsert({where:{code:'MATH'},update:{},create:{name:'Mathematics',code:'MATH',maximumMarks:100}});
+const science=await prisma.subject.upsert({where:{code:'SCI'},update:{},create:{name:'Science',code:'SCI',maximumMarks:100}});
+const english=await prisma.subject.upsert({where:{code:'ENG'},update:{},create:{name:'English',code:'ENG',maximumMarks:100}});
+const cls=await prisma.schoolClass.upsert({where:{className_section_academicYear:{className:'8',section:'A',academicYear:'2026-27'}},update:{},create:{className:'8',section:'A',academicYear:'2026-27'}});
+const ct=await prisma.teacher.upsert({where:{userId:ctUser.id},update:{assignedClassId:cls.id},create:{userId:ctUser.id,employeeId:'T001',teacherType:'CLASS_TEACHER',assignedClassId:cls.id,department:'General',qualification:'B.Ed',mobile:'9000000003',email:'ravi@smartschool.local'}});
+await prisma.schoolClass.update({where:{id:cls.id},data:{classTeacherId:ct.id}});
+const st=await prisma.teacher.upsert({where:{userId:stUser.id},update:{assignedSubjectId:math.id},create:{userId:stUser.id,employeeId:'T002',teacherType:'SUBJECT_TEACHER',assignedSubjectId:math.id,mobile:'9000000004',email:'anitha@smartschool.local'}});
+const s1=await prisma.student.upsert({where:{studentId:'S001'},update:{},create:{studentId:'S001',name:'Aarav Sharma',rollNumber:'1',classId:cls.id,academicYear:'2026-27',status:'Active'}});
+await prisma.student.upsert({where:{studentId:'S002'},update:{},create:{studentId:'S002',name:'Aditi Singh',rollNumber:'2',classId:cls.id,academicYear:'2026-27',status:'Active'}});
+await prisma.student.upsert({where:{studentId:'S003'},update:{},create:{studentId:'S003',name:'Arjun Patel',rollNumber:'3',classId:cls.id,academicYear:'2026-27',status:'Active'}});
+const parent=await prisma.parent.upsert({where:{userId:parentUser.id},update:{},create:{userId:parentUser.id,name:'Parent Aarav',mobile:'9000000005',email:'parent@smartschool.local'}});
+await prisma.parentStudent.upsert({where:{parentId_studentId:{parentId:parent.id,studentId:s1.id}},update:{},create:{parentId:parent.id,studentId:s1.id}});
+await prisma.schoolInformation.upsert({where:{id:'default'},update:{},create:{id:'default',schoolName:'Smart School',visionMission:'Empowering students through learning and character.',principal:'Principal Name',officeContact:'080-00000000',emergencyContact:'112'}});
+await prisma.schoolSettings.upsert({where:{id:'default'},update:{},create:{id:'default',schoolName:'Smart School',slogan:'Everything your school needs, in one place.',academicYear:'2026-27',feePaymentEnabled:true}});
+await prisma.appState.upsert({where:{id:'default'},update:{},create:{id:'default',data:{}}});
+console.log('Seed complete. Temporary password for all accounts: Smart@123');
+await prisma.$disconnect();

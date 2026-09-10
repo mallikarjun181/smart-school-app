@@ -1,0 +1,46 @@
+# Reference production topology for a 1M-registered-user launch.
+# This is NOT a local 1M-concurrent-user guarantee. Use managed PostgreSQL,
+# managed Redis, CDN/WAF and object storage in production.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      TRUST_PROXY: "true"
+      REDIS_URL: ${REDIS_URL:?Set REDIS_URL to your managed Redis/cluster}
+      FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL to your HTTPS public origin}
+      APP_BASE_URL: ${APP_BASE_URL:?Set APP_BASE_URL to your HTTPS public origin}
+      API_RATE_LIMIT_MAX: "6000"
+      AUTH_RATE_LIMIT_MAX: "30"
+      UPLOAD_RATE_LIMIT_MAX: "120"
+      DATABASE_POOL_SIZE: "10"
+      DATABASE_POOL_TIMEOUT: "20"
+    expose: ["5000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks: [appnet]
+    # Start with 8 replicas on a real cluster/VM pool and scale horizontally.
+
+  gateway:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx-1m.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    networks: [appnet]
+
+networks:
+  appnet:

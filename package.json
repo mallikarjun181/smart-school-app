@@ -1,0 +1,14 @@
+{
+  "name": "smart-school-fullstack",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix backend install",
+    "dev": "npm --prefix backend run dev",
+    "start": "npm --prefix backend start",
+    "setup": "node scripts/setup.js",
+    "prisma:validate": "npm --prefix backend run prisma:validate",
+    "load-test": "node load-test/load.mjs",
+    "load-test:5k": "node load-test/load.mjs"
+  },
+  "type": "module"
+}

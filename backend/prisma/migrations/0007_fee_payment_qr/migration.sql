@@ -1,0 +1,1 @@
+ALTER TABLE "Fee" ADD COLUMN "paymentQr" TEXT;
